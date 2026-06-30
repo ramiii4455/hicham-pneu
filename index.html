@@ -265,6 +265,10 @@ code.dim{font-size:11px;background:var(--bg3);padding:2px 6px;border-radius:4px;
     <div class="login-err" id="login-err"></div>
     <button class="btn btn-primary login-btn" onclick="doLogin()" id="login-btn"><i class="ti ti-lock-open"></i> Se connecter</button>
     <div class="login-hint" id="login-hint">HICHAM PNEUMATIQUE — accès protégé</div>
+    <div class="login-hint" style="margin-top:10px">
+      <a href="#" onclick="event.preventDefault();resetAccessCompletely()" style="color:var(--danger);text-decoration:underline">Problème de connexion ? Réinitialiser l'accès</a>
+    </div>
+    <div id="login-debug" style="margin-top:14px;font-size:10px;color:var(--text3);text-align:left;background:var(--bg3);border-radius:6px;padding:8px;display:none"></div>
   </div>
 </div>
 
@@ -847,6 +851,27 @@ function clearSession(){
   sessionStorage.removeItem(SESSION_KEY);
 }
 
+function resetAccessCompletely(){
+  if(!confirm('Réinitialiser complètement l\'accès ?\n\nTous les comptes utilisateurs seront supprimés et vous pourrez recréer un compte administrateur. Vos données (stock, ventes, clients...) ne seront PAS touchées.'))return;
+  try{
+    localStorage.removeItem('hicham_pneu_users_v1');
+    sessionStorage.removeItem('hicham_pneu_session_v1');
+  }catch(e){
+    alert('Erreur lors de la réinitialisation : '+e.message);
+    return;
+  }
+  location.reload();
+}
+
+function showLoginDebug(){
+  const dbg=document.getElementById('login-debug');
+  if(!dbg)return;
+  let raw='(vide)';
+  try{ raw=localStorage.getItem('hicham_pneu_users_v1')||'(vide)'; }catch(e){ raw='Erreur: '+e.message; }
+  dbg.style.display='block';
+  dbg.innerHTML='Comptes enregistrés sur cet appareil : '+(raw==='(vide)'?'aucun':raw.length+' caractères de données');
+}
+
 function initLoginScreen(){
   const isFirstSetup = !users || users.length===0;
   document.getElementById('first-setup-note').classList.toggle('hidden',!isFirstSetup);
@@ -875,6 +900,7 @@ function doLogin(){
   const u=users.find(x=>x.login===login);
   if(!u || simpleHash(pw)!==u.hash){
     errEl.textContent='Identifiant ou mot de passe incorrect.';
+    showLoginDebug();
     document.getElementById('login-pw').value='';
     return;
   }
@@ -1544,6 +1570,7 @@ updClock();setInterval(updClock,30000);
 
 users = loadUsers() || [];
 initLoginScreen();
+showLoginDebug();
 const session = getSession();
 if(session && users.find(u=>u.login===session.login)){
   enterApp(session.login);
